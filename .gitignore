@@ -1,0 +1,20 @@
+# Environnement virtuel
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.idea/
+.vscode/
+
+# Données locales (Importantes à exclure si lourdes ou sensibles)
+chroma_db/
+*.xlsx
+*.jsonl
+
+# Logs
+*.log
