@@ -1,5 +1,6 @@
 # Use an official Python runtime as a parent image
-FROM python:3.10-slim
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim-bookworm
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -14,7 +15,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
