@@ -7,7 +7,7 @@ services:
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - DB_PATH=/app/chroma_db
-      - EXCEL_PATH=/app/data/Docs Bnm QR.xlsx
+      - EXCEL_PATH=/app/data/DocsBnmQR.xlsx
     volumes:
       - ./chroma_db:/app/chroma_db
       - ./data:/app/data
