@@ -5,7 +5,7 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DB_PATH=/app/chroma_db
-ENV EXCEL_PATH=/app/data/Docs Bnm QR.xlsx
+ENV EXCEL_PATH=/app/data/DocsBnmQR.xlsx
 
 # Set work directory
 WORKDIR /app
