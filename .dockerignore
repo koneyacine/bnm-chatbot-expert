@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+.vscode/
+.idea/
+chroma_db/
+ollama_data/
+*.bat
+bnm_dataset.jsonl
+lora_model/
+bnm_model_lora/

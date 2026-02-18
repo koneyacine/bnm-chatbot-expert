@@ -1,0 +1,34 @@
+services:
+  chatbot:
+    build: .
+    container_name: bnm-chatbot
+    ports:
+      - "8501:8501"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - DB_PATH=/app/chroma_db
+      - EXCEL_PATH=/app/data/Docs Bnm QR.xlsx
+    volumes:
+      - ./chroma_db:/app/chroma_db
+      - ./data:/app/data
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    restart: unless-stopped
+
+# Optional: To use GPU in Linux (requires NVIDIA Container Toolkit)
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: 1
+#              capabilities: [gpu]

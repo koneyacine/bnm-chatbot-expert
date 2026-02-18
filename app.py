@@ -9,8 +9,14 @@ import re
 st.set_page_config(page_title="IA Conversationnelle - BNM Expert", layout="wide")
 
 # Configuration RAG
-DB_PATH = r"c:\Users\Lenovo\.gemini\antigravity\playground\harmonic-pioneer\chroma_db"
-COLLECTION_NAME = "bnm_qa"
+# Use environment variables for paths to be Docker-friendly
+DB_PATH = os.getenv("DB_PATH", "chroma_db")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "bnm_qa")
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+# Initialize Ollama client with the configured host
+client_ollama = ollama.Client(host=OLLAMA_HOST)
+
 # Seuil de distance (plus c'est bas, plus c'est proche).
 # 0.8 - 1.0 est souvent un bon compromis pour sentence-transformers.
 DISTANCE_THRESHOLD = 0.95 
@@ -66,10 +72,10 @@ if "messages" not in st.session_state:
 with st.sidebar:
     st.header("État du système")
     try:
-        ollama.list()
+        client_ollama.list()
         st.success("Ollama est prêt.")
     except Exception:
-        st.error("Ollama n'est pas détecté.")
+        st.error(f"Ollama ({OLLAMA_HOST}) n'est pas détecté.")
         st.stop()
     
     st.divider()
@@ -130,7 +136,7 @@ CONTEXTE BNM FOURNI :
             messages_to_send.append({"role": "user", "content": prompt})
 
         try:
-            responses = ollama.chat(
+            responses = client_ollama.chat(
                 model=model_choice,
                 messages=messages_to_send,
                 stream=True

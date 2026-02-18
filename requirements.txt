@@ -1,2 +1,10 @@
 streamlit
 ollama
+chromadb
+pandas
+openpyxl
+sentence-transformers
+torch
+transformers
+datasets
+trl

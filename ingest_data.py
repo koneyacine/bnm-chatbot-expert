@@ -5,10 +5,10 @@ import os
 import json
 
 # Configuration
-EXCEL_PATH = r"C:\Users\Lenovo\OneDrive\Documents\Docs Bnm QR.xlsx"
-JSONL_PATH = r"c:\Users\Lenovo\.gemini\antigravity\playground\harmonic-pioneer\chatbot_v4_simple\bnm_dataset.jsonl"
-DB_PATH = r"c:\Users\Lenovo\.gemini\antigravity\playground\harmonic-pioneer\chroma_db"
-COLLECTION_NAME = "bnm_qa"
+EXCEL_PATH = os.getenv("EXCEL_PATH", "data/DocsBnmQR.xlsx")
+JSONL_PATH = os.getenv("JSONL_PATH", "bnm_dataset.jsonl")
+DB_PATH = os.getenv("DB_PATH", "chroma_db")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "bnm_qa")
 
 def ingest():
     documents = []
