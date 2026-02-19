@@ -24,6 +24,20 @@ services:
       - ./ollama_data:/root/.ollama
     restart: unless-stopped
 
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    volumes:
+      - ./ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    depends_on:
+      - ollama
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - "sleep 10; ollama pull qwen2.5:7b; ollama pull qwen2.5:1.5b; ollama pull qwen2:1.5b; echo 'All models pulled!'"
+
 # Optional: To use GPU in Linux (requires NVIDIA Container Toolkit)
 #    deploy:
 #      resources:
