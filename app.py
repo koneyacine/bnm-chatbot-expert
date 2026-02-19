@@ -84,17 +84,40 @@ with st.sidebar:
     # Check if model is available
     try:
         models_info = client_ollama.list()
-        # ollama.list() returns a dict with 'models' key which is a list of dicts
-        # e.g., {'models': [{'name': 'qwen2.5:7b', ...}, ...]}
-        available_models = [m['name'] for m in models_info.get('models', [])]
+        print(f"DEBUG: client_ollama.list() type: {type(models_info)}", flush=True)
+        print(f"DEBUG: client_ollama.list() content: {models_info}", flush=True)
+        
+        # Handle response being either a dict or an object
+        if isinstance(models_info, dict):
+             models_list = models_info.get('models', [])
+        else:
+             models_list = getattr(models_info, 'models', [])
+
+        available_models = []
+        for m in models_list:
+            # Handle item being either a dict or an object
+            if isinstance(m, dict):
+                model_name = m.get('name') or m.get('model')
+            else:
+                model_name = getattr(m, 'name', getattr(m, 'model', None))
+            
+            if model_name:
+                available_models.append(model_name)
+        
+        print(f"DEBUG: Available models found: {available_models}", flush=True)
         
         # Check for partial matches (e.g. qwen2.5:7b:latest)
         is_model_available = any(model_choice in m for m in available_models)
         
         if not is_model_available:
             st.warning(f"⚠️ Le modèle '{model_choice}' n'est pas encore téléchargé sur le serveur via Ollama. Le service 'ollama-init' est peut-être encore en cours d'exécution.")
+            print(f"DEBUG: Warning user that model {model_choice} is missing.", flush=True)
+            
     except Exception as e:
-        st.error(f"Erreur de connexion à Ollama: {e}")
+        # Fallback: if checking fails, don't crash, just log/warn nicely
+        print(f"ERROR: Failed to check models: {e}", flush=True)
+        # st.error(f"Attention: Impossible de vérifier les modèles disponibles ({e})")
+        pass
 
     if st.button("Effacer la conversation"):
         st.session_state.messages = []
