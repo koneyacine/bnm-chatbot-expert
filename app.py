@@ -81,6 +81,21 @@ with st.sidebar:
     st.divider()
     model_choice = st.selectbox("Modèle", ["qwen2.5:7b", "qwen2.5:1.5b", "qwen2:1.5b"], index=0)
     
+    # Check if model is available
+    try:
+        models_info = client_ollama.list()
+        # ollama.list() returns a dict with 'models' key which is a list of dicts
+        # e.g., {'models': [{'name': 'qwen2.5:7b', ...}, ...]}
+        available_models = [m['name'] for m in models_info.get('models', [])]
+        
+        # Check for partial matches (e.g. qwen2.5:7b:latest)
+        is_model_available = any(model_choice in m for m in available_models)
+        
+        if not is_model_available:
+            st.warning(f"⚠️ Le modèle '{model_choice}' n'est pas encore téléchargé sur le serveur via Ollama. Le service 'ollama-init' est peut-être encore en cours d'exécution.")
+    except Exception as e:
+        st.error(f"Erreur de connexion à Ollama: {e}")
+
     if st.button("Effacer la conversation"):
         st.session_state.messages = []
         st.rerun()
