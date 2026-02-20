@@ -7,13 +7,20 @@ services:
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - DB_PATH=/app/chroma_db
-      - EXCEL_PATH=/app/data/DocsBnmQR.xlsx
+      - DATA_DIR=/app/data
     volumes:
       - ./chroma_db:/app/chroma_db
       - ./data:/app/data
     depends_on:
       - ollama
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   ollama:
     image: ollama/ollama:latest
@@ -23,6 +30,7 @@ services:
     volumes:
       - ./ollama_data:/root/.ollama
     restart: unless-stopped
+<<<<<<< HEAD
 
   ollama-init:
     image: ollama/ollama:latest
@@ -46,3 +54,12 @@ services:
 #            - driver: nvidia
 #              count: 1
 #              capabilities: [gpu]
+=======
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+>>>>>>> 6ea13b4 (Ajout de certaines modifications)

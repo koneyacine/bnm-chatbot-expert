@@ -5,82 +5,163 @@ from chromadb.utils import embedding_functions
 import os
 import re
 
-# Page Config
-st.set_page_config(page_title="IA Conversationnelle - BNM Expert", layout="wide")
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="Bot IA - Expert BNM",
+    page_icon="",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Configuration RAG
-# Use environment variables for paths to be Docker-friendly
+# --- CONFIGURATION RAG ---
 DB_PATH = os.getenv("DB_PATH", "chroma_db")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "bnm_qa")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+DISTANCE_THRESHOLD = 0.70 
 
-# Initialize Ollama client with the configured host
+# --- STYLING (Final Hybrid: V4 Main + V7 Sidebar + Symmetrical Traits) ---
+def apply_custom_styles():
+    st.markdown("""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+        
+        /* Main Typography */
+        .main-title {
+            font-family: 'Playfair Display', serif !important;
+            font-size: 3.5rem !important;
+            color: #1a2a44 !important;
+            margin-bottom: 0px !important;
+        }
+
+        .stApp {
+            background-color: #ffffff;
+        }
+
+        .aqua-accent {
+            color: #00bcd4;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+        }
+
+        /* Sidebar Styling (V7 Style) */
+        [data-testid="stSidebar"] {
+            background-color: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .status-box {
+            background-color: #e6f4ea;
+            color: #1e7e34;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* Message Styling (Symmetrical Traits) */
+        /* Hide Avatars */
+        [data-testid="stChatMessageAvatarUser"], 
+        [data-testid="stChatMessageAvatarAssistant"] {
+            display: none !important;
+        }
+
+        /* User Message (Natural with Aqua Trait) */
+        [data-testid="stChatMessage"]:nth-child(even) {
+            background-color: transparent !important;
+            border: none !important;
+            border-left: 4px solid #00bcd4 !important; /* The user 'trait' */
+            padding: 0.5rem 0 0.5rem 1.5rem !important;
+            margin-bottom: 2rem !important;
+        }
+
+        /* Assistant Message (Natural with Navy Trait) */
+        [data-testid="stChatMessage"]:nth-child(odd) {
+            background-color: transparent !important;
+            border: none !important;
+            border-left: 4px solid #1a2a44 !important; /* The assistant 'trait' */
+            padding: 0.5rem 0 0.5rem 1.5rem !important;
+            margin-bottom: 2rem !important;
+            color: #31333f !important;
+        }
+
+        /* Sidebar Buttons */
+        .stButton>button {
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            border-radius: 8px;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .stButton>button:hover {
+            border-color: #1a2a44;
+            color: #1a2a44;
+        }
+
+        /* Input Bar */
+        .stChatInputContainer {
+            border-top: 1px solid #e5e7eb !important;
+            background-color: #ffffff !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+apply_custom_styles()
+
+# --- UTILS ---
+@st.cache_resource
+def get_chroma_client():
+    return chromadb.PersistentClient(path=DB_PATH)
+
+@st.cache_resource
+def get_embedding_model():
+    return embedding_functions.SentenceTransformerEmbeddingFunction(model_name="paraphrase-multilingual-MiniLM-L12-v2")
+
 client_ollama = ollama.Client(host=OLLAMA_HOST)
-
-# Seuil de distance (plus c'est bas, plus c'est proche).
-# 0.8 - 1.0 est souvent un bon compromis pour sentence-transformers.
-DISTANCE_THRESHOLD = 0.95 
-
-def is_greeting(text):
-    greetings = [
-        "salut", "bonjour", "bonsoir", "hello", "hi", "hey", 
-        "سلام", "صباح الخير", "مساء الخير", "مرحبا"
-    ]
-    # Simple regex to check if the first words contain a greeting
-    clean_text = re.sub(r'[^\w\s]', '', text.lower()).strip()
-    return any(clean_text.startswith(g) for g in greetings) or len(clean_text) < 3
 
 def get_rag_context(query):
     try:
         if not os.path.exists(DB_PATH):
             return None, None
             
-        client = chromadb.PersistentClient(path=DB_PATH)
-        embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="paraphrase-multilingual-MiniLM-L12-v2")
-        
+        client = get_chroma_client()
+        embedding_function = get_embedding_model()
         collection = client.get_collection(name=COLLECTION_NAME, embedding_function=embedding_function)
         
-        # On demande un peu plus de résultats pour plus de contexte
-        results = collection.query(
-            query_texts=[query],
-            n_results=3
-        )
+        # Increase n_results for better context coverage
+        results = collection.query(query_texts=[query], n_results=5)
         
         if results['documents'] and len(results['documents'][0]) > 0:
-            best_distance = results['distances'][0][0]
-            if best_distance < DISTANCE_THRESHOLD:
-                # On concatène les documents pertinents
-                relevant_docs = []
-                for doc, dist in zip(results['documents'][0], results['distances'][0]):
-                    if dist < DISTANCE_THRESHOLD:
-                        relevant_docs.append(doc)
-                return "\n---\n".join(relevant_docs), best_distance
+            relevant_docs = []
+            sources = []
+            for doc, dist, meta in zip(results['documents'][0], results['distances'][0], results['metadatas'][0]):
+                if dist < DISTANCE_THRESHOLD:
+                    relevant_docs.append(doc)
+                    sources.append(meta.get("source", "Inconnu"))
             
-    except Exception as e:
-        # Erreur silencieuse pour l'utilisateur, loguée en console si besoin
+            if relevant_docs:
+                return "\n---\n".join(relevant_docs), list(set(sources))
+            
+    except Exception:
         pass
     return None, None
 
-st.title("Bot IA - Expert BNM")
-st.markdown("Service client intelligent de la **Banque Nationale de Mauritanie**.")
-
-# Initialize Session State
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Sidebar
+# --- UI CONTENT ---
+# Sidebar (Restoring V7 Functional Style)
 with st.sidebar:
-    st.header("État du système")
-    try:
-        client_ollama.list()
-        st.success("Ollama est prêt.")
-    except Exception:
-        st.error(f"Ollama ({OLLAMA_HOST}) n'est pas détecté.")
-        st.stop()
+    st.title("État du système")
+    st.markdown('<div class="status-box">Ollama est prêt.</div>', unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### Modèle")
+    model_choice = st.selectbox("Sélectionner un modèle", ["qwen2.5:1.5b", "qwen2.5:7b"], label_visibility="collapsed")
     
-    st.divider()
-    model_choice = st.selectbox("Modèle", ["qwen2.5:7b", "qwen2.5:1.5b", "qwen2:1.5b"], index=0)
-    
+<<<<<<< HEAD
     # Check if model is available
     try:
         models_info = client_ollama.list()
@@ -119,74 +200,66 @@ with st.sidebar:
         # st.error(f"Attention: Impossible de vérifier les modèles disponibles ({e})")
         pass
 
+=======
+    st.markdown("---")
+>>>>>>> 6ea13b4 (Ajout de certaines modifications)
     if st.button("Effacer la conversation"):
         st.session_state.messages = []
         st.rerun()
 
-# Display Chat History
+# Main Body (Luxury V4 Style Content)
+st.markdown('<h1 class="main-title">Bot IA - Expert BNM</h1>', unsafe_allow_html=True)
+st.markdown('<p class="aqua-accent">Service client intelligent de la Banque Nationale de Mauritanie.</p>', unsafe_allow_html=True)
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display History
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Chat Input
+# Chat Input & Logic
 if prompt := st.chat_input("Posez votre question sur la BNM..."):
-    # User message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Retrieval process (No UI Status)
-    context, distance = get_rag_context(prompt)
-    greeting_detected = is_greeting(prompt)
-
-    # Assistant message
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
+        context, sources = get_rag_context(prompt)
         
-        # SYSTEM PROMPT strict
-        system_prompt = """Tu es l'Assistant Expert de la Banque Nationale de Mauritanie (BNM).
+        # --- HARDENED SYSTEM PROMPT ---
+        system_prompt = f"""Tu es l'Expert IA exclusif de la Banque Nationale de Mauritanie (BNM).
+IDENTITÉ : Ton organisation est la Banque Nationale de Mauritanie (Mauritanie), et non le Bureau National des Monnaies d'Afrique de l'Ouest.
+MISSION : Répondre aux questions des clients sur les services, produits et régulations de la BNM Mauritanie.
 
-TES RÈGLES CRITIQUES :
-1. TON DE VOIX : Professionnel, accueillant et institutionnel.
-2. DISCIPLINE LINGUISTIQUE : Réponds EXCLUSIVEMENT dans la langue utilisée par l'utilisateur (Français, Anglais ou Arabe). Ne mélange JAMAIS deux langues dans la même réponse.
-3. RESTRICTION DE DOMAINE : Tu ne traites QUE les questions liées à la BNM (produits, services, tarifs, agences).
-4. RÉPONSES EXACTES : Utilise le contexte fourni pour donner des réponses précises. Si l'information n'est pas dans le contexte, décline poliment en expliquant que tu es spécialisé uniquement dans les services bancaires de la BNM.
-5. HORS-SUJET : Si la question n'a rien à voir avec la banque, réponds : "Désolé, je suis un assistant spécialisé uniquement dans les services de la BNM. Je ne peux pas répondre à cette demande."
-6. SALUTATIONS : Si l'utilisateur te salue, salue-le en retour cordialement et demande-lui comment tu peux l'aider concernant les services de la BNM.
+RÈGLES STRICTES :
+1. UTILISE UNIQUEMENT LE CONTEXTE CI-DESSOUS. 
+2. Si l'information ne figure pas dans le contexte, dis : "Je suis désolé, mais je n'ai pas d'information officielle à ce sujet dans mes documents."
+3. Ne fais JAMAIS de suppositions sur les régulations gouvernementales ou les normes techniques (comme le crédit documentaire) si elles ne sont pas explicitement décrites dans le contexte.
+4. Ton doit être professionnel, précis et corporatif.
 
-CONTEXTE BNM FOURNI :
-{context}
+CONTEXTE DOCUMENTAIRE :
+{context if context else 'AUCUN DOCUMENT DISPONIBLE. Refuse de répondre.'}
 """
-        # Formattage du prompt système avec le contexte
-        formatted_system = system_prompt.format(context=context if context else "Aucun contexte spécifique trouvé.")
-
-        messages_to_send = [{"role": "system", "content": formatted_system}]
-        
-        # Ajout de l'historique récent (limité pour éviter la confusion)
-        messages_to_send.extend(st.session_state.messages[-5:-1])
-        
-        # Dernier message utilisateur
-        if greeting_detected:
-            # On force une instruction de salutation si c'est détecté
-            messages_to_send.append({"role": "user", "content": f"[SALUTATION DÉTECTÉE] {prompt}"})
-        else:
-            messages_to_send.append({"role": "user", "content": prompt})
 
         try:
-            responses = client_ollama.chat(
+            # RÈGLE : STREAMING ACTIVÉ
+            response_stream = client_ollama.chat(
                 model=model_choice,
-                messages=messages_to_send,
+                messages=[{"role": "system", "content": system_prompt}] + st.session_state.messages[-3:],
                 stream=True
             )
             
-            for chunk in responses:
-                full_response += chunk['message']['content']
-                message_placeholder.markdown(full_response + "▌")
+            def generate_stream():
+                for chunk in response_stream:
+                    yield chunk['message']['content']
             
-            message_placeholder.markdown(full_response)
+            full_response = st.write_stream(generate_stream())
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
+            if sources:
+                st.caption(f"Sources : {', '.join(sources)}")
+            
         except Exception as e:
-            st.error(f"Erreur lors de la génération : {e}")
-
+            st.error(f"Incident technique : {e}")

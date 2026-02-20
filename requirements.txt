@@ -8,3 +8,11 @@ torch
 transformers
 datasets
 trl
+python-docx
+PyMuPDF
+langchain-text-splitters
+docx2txt
+camelot-py[cv]
+tabula-py
+opencv-python-headless
+ghostscript
