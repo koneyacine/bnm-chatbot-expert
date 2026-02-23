@@ -10,5 +10,17 @@
     {
         "question": "Quelle est l'identité de la BNM ?",
         "answer": "La BNM (Banque Nationale de Mauritanie) est une institution financière majeure en Mauritanie. Elle se consacre au développement économique du pays en offrant une gamme complète de services bancaires aux particuliers, aux professionnels et aux entreprises."
+    },
+    {
+        "question": "Qu'est ce que CLICK ?",
+        "answer": "CLICK est la solution de banque digitale (Mobile Money) de la BNM. C’est un portefeuille électronique accessible depuis ton téléphone qui permet d’utiliser des services financiers, même sans compte bancaire classique. Avec CLICK, tu peux ouvrir un compte gratuitement via l’application, déposer ou retirer de l’argent dans les points CLICK, agences BNM ou GAB BNM, envoyer et recevoir de l’argent, payer des factures, taxes et commerçants, et accéder au service via le code USSD *789# sans connexion internet. Le compte est lié à ton numéro de téléphone et sécurisé par un code secret à 4 chiffres."
+    },
+    {
+        "question": "Comment ouvrir un compte CLICK ?",
+        "answer": "Pour utiliser CLICK, commence par télécharger l’application sur Google Play ou l’App Store en recherchant « CLICK Mauritanie » ou « CLICK by BNM », ou bien via le site www.click.mr. Ensuite, crée ton compte directement depuis ton téléphone en t’inscrivant avec ton numéro et en confirmant le code de vérification reçu par SMS. Pour activer pleinement ton compte, tu dois te rendre personnellement dans un Point CLICK ou une agence BNM avec ta CNI valide afin de finaliser la validation. Enfin, tu peux alimenter ton compte en déposant de l’argent en espèces dans un Point CLICK."
+    },
+    {
+        "question": "Comment lier CLICK à notre compte bancaire BNM ?",
+        "answer": "Pour relier ton portefeuille CLICK à ton compte bancaire BNM, tu dois te rendre dans une agence BNM avec ta CNI valide et le numéro de téléphone associé à ton compte CLICK. Sur place, demande la liaison de ton compte CLICK à ton compte bancaire. Une fois cette liaison effectuée, tu pourras alimenter ton compte CLICK directement depuis ton compte BNM et recevoir des virements bancaires sur ton portefeuille CLICK."
     }
 ]

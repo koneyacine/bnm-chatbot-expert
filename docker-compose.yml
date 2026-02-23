@@ -30,7 +30,13 @@ services:
     volumes:
       - ./ollama_data:/root/.ollama
     restart: unless-stopped
-<<<<<<< HEAD
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   ollama-init:
     image: ollama/ollama:latest
@@ -45,21 +51,3 @@ services:
     command:
       - "-c"
       - "sleep 10; ollama pull qwen2.5:7b; ollama pull qwen2.5:1.5b; ollama pull qwen2:1.5b; echo 'All models pulled!'"
-
-# Optional: To use GPU in Linux (requires NVIDIA Container Toolkit)
-#    deploy:
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: 1
-#              capabilities: [gpu]
-=======
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
->>>>>>> 6ea13b4 (Ajout de certaines modifications)

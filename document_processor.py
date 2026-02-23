@@ -125,6 +125,20 @@ def process_documents(data_dir):
                         "metadata": meta,
                         "id": f"{filename}_{i}"
                     })
+        elif filename.endswith((".txt", ".md")):
+            print(f"Traitement Texte/Markdown : {filename}")
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    full_text = f.read()
+                chunks = text_splitter.split_text(full_text)
+                for i, chunk in enumerate(chunks):
+                    documents.append({
+                        "content": chunk,
+                        "metadata": {"source": filename, "chunk_id": i, "type": "text", "section": "Général"},
+                        "id": f"{filename}_{i}"
+                    })
+            except Exception as e:
+                print(f"Erreur lors de la lecture de {filename}: {e}")
         else:
             print(f"Ignoré : {filename}")
             

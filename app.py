@@ -77,6 +77,9 @@ def apply_custom_styles():
             border-left: 4px solid #00bcd4 !important; /* The user 'trait' */
             padding: 0.5rem 0 0.5rem 1.5rem !important;
             margin-bottom: 2rem !important;
+            transition: none !important;
+            filter: none !important;
+            opacity: 1 !important;
         }
 
         /* Assistant Message (Natural with Navy Trait) */
@@ -87,6 +90,14 @@ def apply_custom_styles():
             padding: 0.5rem 0 0.5rem 1.5rem !important;
             margin-bottom: 2rem !important;
             color: #31333f !important;
+            transition: none !important;
+            filter: none !important;
+            opacity: 1 !important;
+        }
+
+        /* Hide "Running embeddings" and general spinners if they cause clutter */
+        [data-testid="stStatusWidget"] {
+            display: none !important;
         }
 
         /* Sidebar Buttons */
@@ -134,7 +145,7 @@ def get_rag_context(query):
         embedding_function = get_embedding_model()
         collection = client.get_collection(name=COLLECTION_NAME, embedding_function=embedding_function)
         
-        # Increase n_results for better context coverage
+        # Increased n_results for better context coverage
         results = collection.query(query_texts=[query], n_results=5)
         
         if results['documents'] and len(results['documents'][0]) > 0:
@@ -161,12 +172,10 @@ with st.sidebar:
     st.markdown("### Modèle")
     model_choice = st.selectbox("Sélectionner un modèle", ["qwen2.5:1.5b", "qwen2.5:7b"], label_visibility="collapsed")
     
-<<<<<<< HEAD
+
     # Check if model is available
     try:
         models_info = client_ollama.list()
-        print(f"DEBUG: client_ollama.list() type: {type(models_info)}", flush=True)
-        print(f"DEBUG: client_ollama.list() content: {models_info}", flush=True)
         
         # Handle response being either a dict or an object
         if isinstance(models_info, dict):
@@ -185,24 +194,16 @@ with st.sidebar:
             if model_name:
                 available_models.append(model_name)
         
-        print(f"DEBUG: Available models found: {available_models}", flush=True)
-        
         # Check for partial matches (e.g. qwen2.5:7b:latest)
         is_model_available = any(model_choice in m for m in available_models)
         
         if not is_model_available:
-            st.warning(f"⚠️ Le modèle '{model_choice}' n'est pas encore téléchargé sur le serveur via Ollama. Le service 'ollama-init' est peut-être encore en cours d'exécution.")
-            print(f"DEBUG: Warning user that model {model_choice} is missing.", flush=True)
+            st.warning(f"⚠️ Le modèle '{model_choice}' n'est pas téléchargé.")
             
-    except Exception as e:
-        # Fallback: if checking fails, don't crash, just log/warn nicely
-        print(f"ERROR: Failed to check models: {e}", flush=True)
-        # st.error(f"Attention: Impossible de vérifier les modèles disponibles ({e})")
+    except Exception:
         pass
 
-=======
     st.markdown("---")
->>>>>>> 6ea13b4 (Ajout de certaines modifications)
     if st.button("Effacer la conversation"):
         st.session_state.messages = []
         st.rerun()
@@ -228,32 +229,41 @@ if prompt := st.chat_input("Posez votre question sur la BNM..."):
     with st.chat_message("assistant"):
         context, sources = get_rag_context(prompt)
         
-        # --- HARDENED SYSTEM PROMPT ---
+        # --- DETECT MANUAL FAQ HIT ---
+        is_manual_hit = any("manual_qa.json" in str(s) for s in (sources if sources else []))
+        
+        # --- STRICT & HARDENED SYSTEM PROMPT ---
         system_prompt = f"""Tu es l'Expert IA exclusif de la Banque Nationale de Mauritanie (BNM).
-IDENTITÉ : Ton organisation est la Banque Nationale de Mauritanie (Mauritanie), et non le Bureau National des Monnaies d'Afrique de l'Ouest.
-MISSION : Répondre aux questions des clients sur les services, produits et régulations de la BNM Mauritanie.
+        
+TON IDENTITÉ & SOURCE UNIQUE :
+- Ton organisation est la Banque Nationale de Mauritanie (Mauritanie).
+- Tu RÉPONDS UNIQUEMENT en utilisant les informations contenues dans le CONTEXTE DOCUMENTAIRE fourni ci-dessous.
+- Tu n'as AUCUNE CULTURE GÉNÉRALE. Si une information n'est pas dans le contexte, tu ne la connais pas du tout.
+- INTERDICTION FORMELLE d'inventer, de supposer ou d'ajouter des détails qui ne sont pas explicitement écrits.
+{"- NOTE : Le contexte contient une réponse provenant d'une FAQ manuelle officielle. Utilise cette réponse EXACTEMENT telle quelle sans la modifier." if is_manual_hit else ""}
 
-RÈGLES STRICTES :
-1. UTILISE UNIQUEMENT LE CONTEXTE CI-DESSOUS. 
-2. Si l'information ne figure pas dans le contexte, dis : "Je suis désolé, mais je n'ai pas d'information officielle à ce sujet dans mes documents."
-3. Ne fais JAMAIS de suppositions sur les régulations gouvernementales ou les normes techniques (comme le crédit documentaire) si elles ne sont pas explicitement décrites dans le contexte.
-4. Ton doit être professionnel, précis et corporatif.
+RÈGLES DE RÉPONSE :
+1. PRÉCISION ABSOLUE : Réponds directement à la question sans fioritures.
+2. PAS D'HALLUCINATION : Si l'info manque, dis : "Je suis désolé, je n'ai pas cette information dans mes documents officiels."
+3. FIDÉLITÉ : Si l'utilisateur pose une question reformulée, trouve l'information correspondante dans le contexte.
+4. ALIGNEMENT LINGUISTIQUE (CRITIQUE) : Réponds SYSTÉMATIQUEMENT dans la langue utilisée par l'utilisateur (Arabe, Anglais ou Français).
 
 CONTEXTE DOCUMENTAIRE :
-{context if context else 'AUCUN DOCUMENT DISPONIBLE. Refuse de répondre.'}
+{context if context else 'AUCUN DOCUMENT DISPONIBLE. Refuse de répondre poliment.'}
 """
 
         try:
             # RÈGLE : STREAMING ACTIVÉ
             response_stream = client_ollama.chat(
                 model=model_choice,
-                messages=[{"role": "system", "content": system_prompt}] + st.session_state.messages[-3:],
+                messages=[{"role": "system", "content": system_prompt}] + st.session_state.messages[-5:],
                 stream=True
             )
             
             def generate_stream():
                 for chunk in response_stream:
-                    yield chunk['message']['content']
+                    if 'message' in chunk and 'content' in chunk['message'] :
+                        yield chunk['message']['content']
             
             full_response = st.write_stream(generate_stream())
             st.session_state.messages.append({"role": "assistant", "content": full_response})

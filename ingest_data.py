@@ -19,13 +19,32 @@ def ingest():
     # Process documents into chunks
     processed_docs = process_documents(DATA_DIR)
     
-    if not processed_docs:
-        print("No documents found or no text extracted.")
-        return
-
     documents = [doc["content"] for doc in processed_docs]
     metadatas = [doc["metadata"] for doc in processed_docs]
     ids = [doc["id"] for doc in processed_docs]
+
+    # Process manual QA from JSON if exists
+    JSON_PATH = "manual_qa.json"
+    if os.path.exists(JSON_PATH):
+        print(f"Loading manual QA from: {JSON_PATH}")
+        try:
+            with open(JSON_PATH, "r", encoding="utf-8") as f:
+                manual_qa = json.load(f)
+                for i, qa in enumerate(manual_qa):
+                    q = qa.get("question", "")
+                    a = qa.get("answer", "")
+                    if q and a:
+                        content = f"Question: {q}\n\nRéponse: {a}"
+                        documents.append(content)
+                        metadatas.append({"source": "manual_qa.json", "type": "qa", "qa_id": i})
+                        ids.append(f"manual_qa_{i}")
+            print(f"Added {len(manual_qa)} QA pairs from JSON.")
+        except Exception as e:
+            print(f"Error loading {JSON_PATH}: {e}")
+
+    if not documents:
+        print("No documents found to ingest.")
+        return
 
     try:
         # Initialize ChromaDB
